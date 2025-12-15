@@ -19,7 +19,7 @@ RANGE = "Hoja1!A:Z"
 
 def read_sheet():
 
-    # --- OAuth usando Streamlit Secrets ---
+    # --- OAuth SOLO con Secrets ---
     if "google_creds" not in st.session_state:
 
         flow = InstalledAppFlow.from_client_config(
@@ -36,7 +36,7 @@ def read_sheet():
 
         creds = flow.run_local_server(port=0)
 
-        # Guardar token en sesión (NO archivo)
+        # Guardar token en sesión (NO archivos)
         st.session_state["google_creds"] = {
             "token": creds.token,
             "refresh_token": creds.refresh_token,
@@ -51,7 +51,7 @@ def read_sheet():
             st.session_state["google_creds"], SCOPES
         )
 
-    # --- Lectura Google Sheets ---
+    # --- Google Sheets ---
     service = build("sheets", "v4", credentials=creds)
     sheet = service.spreadsheets()
 
@@ -66,7 +66,6 @@ def read_sheet():
         return pd.DataFrame()
 
     return pd.DataFrame(values[1:], columns=values[0])
-
 # ------------------------------------------------------
 # CARGA DE DATOS
 # ------------------------------------------------------
