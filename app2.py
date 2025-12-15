@@ -18,24 +18,40 @@ SPREADSHEET_ID = "1CLXO542URTaZOjOaZnMP_BkQYbXVoCVIM0AQEciMqiU"
 RANGE = "Hoja1!A:Z"
 
 def read_sheet():
-    creds = None
 
-    # Si ya existe token.json, lo usa
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    # --- OAuth usando Streamlit Secrets ---
+    if "google_creds" not in st.session_state:
 
-    # Si no existe o está inválido → abre ventana de login
-    if not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            "credentials.json", SCOPES
+        flow = InstalledAppFlow.from_client_config(
+            {
+                "installed": {
+                    "client_id": st.secrets["google"]["client_id"],
+                    "client_secret": st.secrets["google"]["client_secret"],
+                    "auth_uri": st.secrets["google"]["auth_uri"],
+                    "token_uri": st.secrets["google"]["token_uri"],
+                }
+            },
+            SCOPES,
         )
+
         creds = flow.run_local_server(port=0)
 
-        # Guarda el token
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+        # Guardar token en sesión (NO archivo)
+        st.session_state["google_creds"] = {
+            "token": creds.token,
+            "refresh_token": creds.refresh_token,
+            "token_uri": creds.token_uri,
+            "client_id": creds.client_id,
+            "client_secret": creds.client_secret,
+            "scopes": creds.scopes,
+        }
 
-    # Lector de Google Sheets
+    else:
+        creds = Credentials.from_authorized_user_info(
+            st.session_state["google_creds"], SCOPES
+        )
+
+    # --- Lectura Google Sheets ---
     service = build("sheets", "v4", credentials=creds)
     sheet = service.spreadsheets()
 
@@ -46,10 +62,10 @@ def read_sheet():
 
     values = result.get("values", [])
 
-    # Convertir a DataFrame
-    df = pd.DataFrame(values[1:], columns=values[0])
-    return df
+    if not values:
+        return pd.DataFrame()
 
+    return pd.DataFrame(values[1:], columns=values[0])
 
 # ------------------------------------------------------
 # CARGA DE DATOS
